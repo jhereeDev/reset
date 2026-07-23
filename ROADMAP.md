@@ -35,7 +35,7 @@ The trust release. Ship before growing the audience.
 
 ## v1.2 — Make streaks feel alive (engagement)
 
-- **Gamification**: milestone badges (3/7/21/30/100-day streaks, first plan
+- [x] **Gamification**: milestone badges (3/7/21/30/100-day streaks, first plan
   completed, 100 total wins…), a trophies section in Profile, celebratory
   moments on unlock (existing haptics + animation system reused)
 - **Home-screen widgets**:

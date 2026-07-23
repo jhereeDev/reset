@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/badges/presentation/trophies_screen.dart';
 import '../../features/habits/presentation/habit_form_screen.dart';
 import '../../features/habits/presentation/habit_list_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -24,6 +25,7 @@ abstract final class AppRoutes {
   static const habitNew = '/habits/new';
   static const habits = '/habits';
   static const about = '/profile/about';
+  static const trophies = '/profile/trophies';
 
   static String habitEdit(String id) => '/habits/$id/edit';
 
@@ -109,6 +111,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'about',
                     builder: (context, state) => const AboutScreen(),
+                  ),
+                  GoRoute(
+                    path: 'trophies',
+                    builder: (context, state) => const TrophiesScreen(),
                   ),
                 ],
               ),

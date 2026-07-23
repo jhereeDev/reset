@@ -41,6 +41,12 @@ void main() {
   testWidgets('Today flow: see habit, complete it, progress updates', (
     tester,
   ) async {
+    // Phone-sized viewport: the default 800x600 crams the layout enough that
+    // floating snackbars overlap the habit card's tap targets.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+
     SharedPreferences.setMockInitialValues({
       'prefs.onboardingComplete': true,
       'prefs.displayName': 'Sam',
@@ -77,9 +83,16 @@ void main() {
 
     expect(find.text('1/1'), findsOneWidget);
 
-    // Undo is offered in the completion snackbar.
-    expect(find.text('Undo'), findsOneWidget);
-    await tester.tap(find.text('Undo'));
+    // First completion unlocks the "First Win" trophy — dismiss the dialog.
+    expect(find.text('Trophy unlocked!'), findsOneWidget);
+    expect(find.text('First Win'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Keep going 💪'));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('Trophy unlocked!'), findsNothing);
+
+    // Completion is reversible: toggling the check control undoes it.
+    await tester.tap(find.bySemanticsLabel('Mark Make the bed as not done'));
     await settle(tester);
     expect(find.text('0/1'), findsOneWidget);
 

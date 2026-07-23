@@ -13,6 +13,8 @@ import '../../../core/widgets/section_header.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/backup/backup_service.dart';
+import '../../badges/badge_defs.dart' as defs;
+import '../../badges/badge_providers.dart';
 import '../../habits/domain/habit.dart';
 import '../data/data_export.dart';
 import '../data/data_import.dart';
@@ -72,6 +74,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               subtitle: const Text('Tap to edit'),
               onTap: () => _editName(context, ref),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Card(
+            child: Builder(
+              builder: (context) {
+                final unlocked = ref.watch(unlockedBadgesProvider).length;
+                final total = defs.BadgeCatalog.all.length;
+                return ListTile(
+                  leading: const Icon(Icons.emoji_events_rounded),
+                  title: const Text('Trophies'),
+                  subtitle: Text('$unlocked of $total unlocked'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(AppRoutes.trophies),
+                );
+              },
             ),
           ),
           const SectionHeader('Your goals'),
