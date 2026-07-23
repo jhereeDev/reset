@@ -44,7 +44,9 @@ workflows:
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build signed IPA
-        script: flutter build ipa --release
+        # BUILD_NUMBER is Codemagic's per-app build counter — guarantees every
+        # upload has a unique, increasing build number for TestFlight.
+        script: flutter build ipa --release --build-number=$BUILD_NUMBER
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
