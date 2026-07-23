@@ -26,7 +26,35 @@ class StreakResult {
   final int best;
 }
 
-enum DayStatus { complete, partial, missed, future, rest }
+enum DayStatus { complete, partial, missed, future, rest, frozen }
+
+/// Overall streak enriched with the streak-freeze mechanic.
+///
+/// Every [StreakCalculator.tokenEvery] consecutive successful days earn one
+/// freeze token (capped at [StreakCalculator.maxTokens]). When a past due
+/// day was missed and a token is available, the token is consumed
+/// automatically: the day becomes *frozen* — it doesn't extend the streak,
+/// but it doesn't break it either. Supportive by design: one bad day never
+/// undoes a good run. Fully derived from history — no stored state.
+class OverallStreakState {
+  const OverallStreakState({
+    required this.current,
+    required this.best,
+    required this.freezeTokens,
+    required this.frozenDayKeys,
+  });
+
+  final int current;
+  final int best;
+
+  /// Unspent freeze tokens as of today.
+  final int freezeTokens;
+
+  /// Days that were saved by a token, as dateKeys.
+  final Set<String> frozenDayKeys;
+
+  StreakResult get streak => StreakResult(current: current, best: best);
+}
 
 abstract final class StreakCalculator {
   /// [entries] maps dateKey -> entry for a single habit.
@@ -181,6 +209,87 @@ abstract final class StreakCalculator {
     if (current > best) best = current;
 
     return StreakResult(current: current, best: best);
+  }
+
+  static const tokenEvery = 7;
+  static const maxTokens = 3;
+
+  /// Overall streak with the freeze mechanic applied (see
+  /// [OverallStreakState]). Single forward replay from the earliest habit
+  /// start date; deterministic given the data.
+  static OverallStreakState overallStreakWithFreezes({
+    required List<Habit> habits,
+    required Map<String, Map<String, HabitEntry>> entriesByHabit,
+    required DateTime today,
+  }) {
+    const empty = OverallStreakState(
+      current: 0,
+      best: 0,
+      freezeTokens: 0,
+      frozenDayKeys: {},
+    );
+    final end = AppDateUtils.dateOnly(today);
+    if (habits.isEmpty) return empty;
+    var earliest = AppDateUtils.dateOnly(habits.first.startDate);
+    for (final h in habits) {
+      final s = AppDateUtils.dateOnly(h.startDate);
+      if (s.isBefore(earliest)) earliest = s;
+    }
+    if (AppDateUtils.daysBetween(earliest, end) < 0) return empty;
+
+    bool? daySuccessful(DateTime day) {
+      var due = 0;
+      var done = 0;
+      for (final habit in habits) {
+        if (!habit.isDueOn(day)) continue;
+        due++;
+        final entry = entriesByHabit[habit.id]?[AppDateUtils.dateKey(day)];
+        if (entry?.completed ?? false) done++;
+      }
+      if (due == 0) return null;
+      return done == due;
+    }
+
+    var run = 0;
+    var best = 0;
+    var tokens = 0;
+    var sinceEarn = 0;
+    final frozen = <String>{};
+
+    for (
+      var day = earliest;
+      AppDateUtils.daysBetween(day, end) >= 0;
+      day = day.add(const Duration(days: 1))
+    ) {
+      final success = daySuccessful(day);
+      if (success == null) continue; // nothing due — neutral
+      if (success) {
+        run++;
+        if (run > best) best = run;
+        sinceEarn++;
+        if (sinceEarn == tokenEvery) {
+          if (tokens < maxTokens) tokens++;
+          sinceEarn = 0;
+        }
+      } else if (AppDateUtils.isSameDay(day, end)) {
+        // Today is still open — never breaks, never costs a token.
+      } else if (tokens > 0) {
+        tokens--;
+        frozen.add(AppDateUtils.dateKey(day));
+        // Run survives but doesn't grow; progress toward the next token
+        // pauses rather than resetting.
+      } else {
+        run = 0;
+        sinceEarn = 0;
+      }
+    }
+
+    return OverallStreakState(
+      current: run,
+      best: best,
+      freezeTokens: tokens,
+      frozenDayKeys: frozen,
+    );
   }
 
   /// Status of a calendar day for history views.

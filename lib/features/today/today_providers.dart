@@ -42,12 +42,12 @@ final todayProgressProvider = Provider<TodayProgress>((ref) {
   return TodayProgress(total: habits.length, completed: completed);
 });
 
-/// Overall daily streak (see StreakCalculator docs for the rules).
-final overallStreakProvider = Provider<StreakResult>((ref) {
+/// Overall daily streak with freeze tokens (see OverallStreakState docs).
+final overallStreakProvider = Provider<OverallStreakState>((ref) {
   final key = ref.watch(todayKeyProvider);
   final habits = ref.watch(allHabitsProvider).value ?? const [];
   final entriesByHabit = ref.watch(entriesByHabitProvider);
-  return StreakCalculator.overallStreak(
+  return StreakCalculator.overallStreakWithFreezes(
     habits: habits,
     entriesByHabit: entriesByHabit,
     today: AppDateUtils.parseDateKey(key),

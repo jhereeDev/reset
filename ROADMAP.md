@@ -38,12 +38,12 @@ The trust release. Ship before growing the audience.
 - [x] **Gamification**: milestone badges (3/7/21/30/100-day streaks, first plan
   completed, 100 total wins…), a trophies section in Profile, celebratory
   moments on unlock (existing haptics + animation system reused)
-- **Home-screen widgets**:
+- [x] **Home-screen widgets** (Android shipped; iOS WidgetKit still pending):
   - Android first (`home_widget` package + Glance): today's ring + top 3
     habits with quick-complete
   - iOS WidgetKit (needs a native Swift extension target + App Group shared
     storage; build via Codemagic as today)
-- Streak-freeze token (earned by 7 perfect days, auto-spent on a missed day)
+- [x] Streak-freeze token (earned by 7 perfect days, auto-spent on a missed day)
   — supportive-not-punitive, matches the brand voice
 
 ## v1.3 — Steps that count themselves (health)

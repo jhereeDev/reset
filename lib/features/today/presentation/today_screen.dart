@@ -7,6 +7,7 @@ import '../../../app/providers.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/routing/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utilities/streak_calculator.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/progress_ring.dart';
 import '../../../core/widgets/state_views.dart';
@@ -186,33 +187,57 @@ class _TodayHeader extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.local_fire_department_rounded,
-                              size: 16,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              streak.current == 1
-                                  ? '1 day streak'
-                                  : '${streak.current} day streak',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: Colors.white,
+                      Tooltip(
+                        message: streak.freezeTokens > 0
+                            ? 'Every ${StreakCalculator.tokenEvery} perfect '
+                                  'days earns a streak freeze — you have '
+                                  '${streak.freezeTokens} that will cover a '
+                                  'missed day automatically.'
+                            : 'Every ${StreakCalculator.tokenEvery} perfect '
+                                  'days earns a streak freeze that covers a '
+                                  'missed day automatically.',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department_rounded,
+                                size: 16,
+                                color: Colors.amber,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: AppSpacing.xs),
+                              Text(
+                                streak.current == 1
+                                    ? '1 day streak'
+                                    : '${streak.current} day streak',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (streak.freezeTokens > 0) ...[
+                                const SizedBox(width: AppSpacing.sm),
+                                const Icon(
+                                  Icons.ac_unit_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                Text(
+                                  '×${streak.freezeTokens}',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                     ],

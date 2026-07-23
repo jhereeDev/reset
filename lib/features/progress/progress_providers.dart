@@ -7,6 +7,7 @@ import '../habits/domain/habit.dart';
 import '../habits/domain/habit_entry.dart';
 import '../habits/providers/habit_providers.dart';
 import '../profile/providers/preferences_providers.dart';
+import '../today/today_providers.dart';
 
 class DayInfo {
   const DayInfo({required this.date, required this.status});
@@ -16,6 +17,7 @@ class DayInfo {
 }
 
 /// Status for each day of the current week (respecting week-start pref).
+/// Days rescued by a streak-freeze token render as [DayStatus.frozen].
 final currentWeekDaysProvider = Provider<List<DayInfo>>((ref) {
   final todayKey = ref.watch(todayKeyProvider);
   final today = AppDateUtils.parseDateKey(todayKey);
@@ -24,18 +26,24 @@ final currentWeekDaysProvider = Provider<List<DayInfo>>((ref) {
   );
   final habits = ref.watch(allHabitsProvider).value ?? const <Habit>[];
   final entriesByHabit = ref.watch(entriesByHabitProvider);
+  final frozen = ref.watch(overallStreakProvider).frozenDayKeys;
 
   final weekStart = AppDateUtils.startOfWeek(today, weekStartDay);
   return [
     for (var i = 0; i < 7; i++)
       DayInfo(
         date: weekStart.add(Duration(days: i)),
-        status: StreakCalculator.dayStatus(
-          day: weekStart.add(Duration(days: i)),
-          today: today,
-          habits: habits,
-          entriesByHabit: entriesByHabit,
-        ),
+        status:
+            frozen.contains(
+              AppDateUtils.dateKey(weekStart.add(Duration(days: i))),
+            )
+            ? DayStatus.frozen
+            : StreakCalculator.dayStatus(
+                day: weekStart.add(Duration(days: i)),
+                today: today,
+                habits: habits,
+                entriesByHabit: entriesByHabit,
+              ),
       ),
   ];
 });

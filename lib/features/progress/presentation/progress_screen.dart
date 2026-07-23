@@ -162,6 +162,7 @@ Color statusColor(BuildContext context, DayStatus status) {
     DayStatus.missed => AppColors.danger.withValues(alpha: 0.55),
     DayStatus.future => theme.dividerColor,
     DayStatus.rest => theme.dividerColor.withValues(alpha: 0.35),
+    DayStatus.frozen => const Color(0xFF38BDF8), // ice blue — streak freeze
   };
 }
 
@@ -344,6 +345,7 @@ class _StatusLegend extends StatelessWidget {
         dot(DayStatus.complete, 'Complete'),
         dot(DayStatus.partial, 'Partial'),
         dot(DayStatus.missed, 'Missed'),
+        dot(DayStatus.frozen, 'Frozen'),
         dot(DayStatus.future, 'Upcoming'),
       ],
     );

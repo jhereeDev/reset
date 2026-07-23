@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/badges/presentation/badge_celebration.dart';
+import '../../features/widget/home_widget_sync.dart';
 import '../constants/app_strings.dart';
 
 /// Bottom-navigation scaffold hosting the four main tabs.
@@ -13,7 +14,9 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BadgeCelebrationListener(child: navigationShell),
+      body: BadgeCelebrationListener(
+        child: HomeWidgetSyncListener(child: navigationShell),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => navigationShell.goBranch(

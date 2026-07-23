@@ -138,7 +138,8 @@ abstract final class BadgeEngine {
     if (completed.length >= 500) ids.add('wins_500');
     if (completed.length >= 1000) ids.add('wins_1000');
 
-    final best = StreakCalculator.overallStreak(
+    // Freeze-aware so the badge streak always matches the displayed streak.
+    final best = StreakCalculator.overallStreakWithFreezes(
       habits: habits,
       entriesByHabit: entriesByHabit,
       today: today,

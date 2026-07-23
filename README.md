@@ -39,6 +39,15 @@ Built with Flutter for **Android and iOS**.
   (last 7 kept), a Backups sheet with restore + back-up-now, paste-JSON
   import with merge/replace modes, and an onboarding card that offers to
   restore data found from a previous install.
+- **Trophies (v1.2)** — 12 milestone badges derived purely from your data
+  (streaks, total wins, plan completions, comebacks), each celebrated
+  exactly once.
+- **Streak freezes (v1.2)** — every 7 perfect days earns a token (max 3)
+  that automatically covers a missed day; frozen days show ice-blue in the
+  calendar. One bad day never undoes a good run.
+- **Android home-screen widget (v1.2)** — today's progress, streak, and top
+  habits at a glance; taps open the app; degrades gracefully when the app
+  hasn't been opened that day.
 
 Everything works fully offline. No account, no backend, no analytics.
 
