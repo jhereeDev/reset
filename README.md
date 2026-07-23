@@ -118,6 +118,11 @@ dart run build_runner build --delete-conflicting-outputs
 
 # Run on a connected device / emulator:
 flutter run
+
+# Release builds (crash reporting activates only when the DSN is passed):
+flutter build appbundle --release --dart-define=SENTRY_DSN=$SENTRY_DSN
+# iOS releases are built by Codemagic (codemagic.yaml), which injects the
+# DSN from its "sentry" environment group automatically.
 ```
 
 ### Tests, formatting, analysis

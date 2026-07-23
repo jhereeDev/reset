@@ -23,6 +23,7 @@ workflows:
     environment:
       groups:
         - signing
+        - sentry
       flutter: stable
     scripts:
       - name: Get dependencies
