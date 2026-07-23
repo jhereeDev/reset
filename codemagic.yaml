@@ -1,10 +1,17 @@
 # Codemagic CI — builds the iOS release on a cloud Mac and ships it to
-# TestFlight. Requires (one-time, in the Codemagic web app):
-#   1. An App Store Connect API key added under
-#      Teams -> Integrations -> Developer Portal, named exactly "asc-key".
-#   2. This repo connected as an application.
-# Signing is fully automatic: Codemagic uses the API key to create/fetch the
-# distribution certificate and provisioning profile for the bundle id.
+# TestFlight.
+#
+# Setup this file expects (already configured):
+#   - App Store Connect API key integration named "asc-key"
+#     (Personal Account -> Integrations -> Developer Portal). It injects the
+#     APP_STORE_CONNECT_* env vars the app-store-connect CLI reads.
+#   - Secure variable group "signing" containing CERTIFICATE_PRIVATE_KEY
+#     (an RSA key used to create the Apple Distribution certificate).
+#
+# Signing is done explicitly with `fetch-signing-files --create`, which
+# creates the distribution certificate and App Store provisioning profile on
+# first run — the managed ios_signing block only fetches pre-existing
+# profiles and fails on a fresh bundle id.
 
 workflows:
   ios-testflight:
@@ -14,9 +21,8 @@ workflows:
     integrations:
       app_store_connect: asc-key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: dev.jheremiah.reset
+      groups:
+        - signing
       flutter: stable
     scripts:
       - name: Get dependencies
@@ -25,6 +31,16 @@ workflows:
         script: |
           flutter analyze
           flutter test
+      - name: Initialize keychain
+        script: keychain initialize
+      - name: Fetch or create signing files
+        script: |
+          app-store-connect fetch-signing-files "dev.jheremiah.reset" \
+            --type IOS_APP_STORE \
+            --platform IOS \
+            --create
+      - name: Add certificates to keychain
+        script: keychain add-certificates
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Build signed IPA
