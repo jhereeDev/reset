@@ -38,7 +38,7 @@ workflows:
         submit_to_testflight: true
       email:
         recipients:
-          - jheremiah.dev@gmail.com
+          - figueroa.jheremiah@gmail.com
         notify:
           success: true
           failure: true
