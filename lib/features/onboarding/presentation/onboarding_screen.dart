@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/backup/backup_service.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utilities/app_date_utils.dart';
 import '../../../core/widgets/habit_icon_avatar.dart';
 import '../../habits/domain/habit.dart';
+import '../../profile/data/data_import.dart';
 import '../../profile/providers/preferences_providers.dart';
 import '../../reset/preset_plans.dart';
 import '../starter_habits.dart';
@@ -264,6 +267,7 @@ class _WelcomeStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _RestoreBackupCard(),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.xl),
@@ -577,5 +581,82 @@ class _ReminderStep extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Offers to restore a local backup left behind by a previous install.
+/// Renders nothing when no backup exists, so fresh users never see it.
+class _RestoreBackupCard extends ConsumerWidget {
+  const _RestoreBackupCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final backup = ref.watch(latestBackupProvider).value;
+    if (backup == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      'Welcome back! We found your data',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'A backup from ${DateFormat.yMMMd().format(backup.date)} is on '
+                'this device. Restore it to pick up right where you left off — '
+                'habits, streaks, and all.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _restore(context, ref, backup),
+                  icon: const Icon(Icons.settings_backup_restore_rounded),
+                  label: const Text('Restore my data'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _restore(
+    BuildContext context,
+    WidgetRef ref,
+    BackupInfo backup,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref
+          .read(backupServiceProvider)
+          .restore(backup, ImportMode.replace);
+      await ref.read(preferencesProvider.notifier).completeOnboarding();
+      // Router redirects to Today automatically once onboarding completes.
+      messenger.showSnackBar(
+        SnackBar(content: Text('Restored ${result.describe()} 🎉')),
+      );
+    } on ImportFormatException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not restore: ${e.message}')),
+      );
+    }
   }
 }

@@ -35,6 +35,10 @@ Built with Flutter for **Android and iOS**.
 - **Profile & settings** — name, goals, general daily reminder, week start
   (Mon/Sun), light/dark/system theme, JSON data export, full data reset, and
   an About page. Debug builds include a "Load demo data" helper.
+- **Backups & restore (v1.1)** — a silent daily snapshot to app storage
+  (last 7 kept), a Backups sheet with restore + back-up-now, paste-JSON
+  import with merge/replace modes, and an onboarding card that offers to
+  restore data found from a previous install.
 
 Everything works fully offline. No account, no backend, no analytics.
 
@@ -141,7 +145,9 @@ main Today-screen completion flow (widget test).
 ## Current limitations
 
 - Steps are entered manually; there is no automatic step sync yet (see below).
-- Export is copy-to-clipboard JSON; there is no import/restore flow yet.
+- Crash reporting (Sentry) is compiled in but dormant: it activates only when
+  built with `--dart-define=SENTRY_DSN=...`, sends crashes only (no
+  analytics/PII), and requires a privacy-policy update before enabling.
 - Streaks treat a habit's *current* status/schedule as authoritative for past
   days (status changes are not backdated).
 - Single locale (English) UI strings, centralized and ready for localization.

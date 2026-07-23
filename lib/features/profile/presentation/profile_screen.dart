@@ -10,8 +10,12 @@ import '../../../core/routing/app_router.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/confirm_dialog.dart';
 import '../../../core/widgets/section_header.dart';
+import 'package:intl/intl.dart';
+
+import '../../../core/backup/backup_service.dart';
 import '../../habits/domain/habit.dart';
 import '../data/data_export.dart';
+import '../data/data_import.dart';
 import '../data/demo_data.dart';
 import '../providers/preferences_providers.dart';
 
@@ -176,6 +180,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => _export(context, ref),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.file_upload_outlined),
+                  title: const Text('Import data'),
+                  subtitle: const Text('Paste a Reset export to restore it'),
+                  onTap: () => _import(context, ref),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.settings_backup_restore_rounded),
+                  title: const Text('Backups'),
+                  subtitle: const Text('Automatic daily snapshots on device'),
+                  onTap: () => _showBackups(context, ref),
+                ),
+                ListTile(
                   leading: Icon(
                     Icons.delete_forever_outlined,
                     color: theme.colorScheme.error,
@@ -234,6 +250,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _nameDialogOpen = false;
     }
   }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final summary = await showDialog<String>(
+      context: context,
+      builder: (context) => const _ImportDialog(),
+    );
+    if (summary != null && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Imported $summary')));
+    }
+  }
+
+  Future<void> _showBackups(BuildContext context, WidgetRef ref) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => const _BackupsSheet(),
+      );
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
     final json = await ref.read(_exportProvider.future);
@@ -383,3 +418,242 @@ class _NameDialogState extends State<_NameDialog> {
     );
   }
 }
+
+/// Paste-JSON import dialog with a merge/replace choice.
+class _ImportDialog extends ConsumerStatefulWidget {
+  const _ImportDialog();
+
+  @override
+  ConsumerState<_ImportDialog> createState() => _ImportDialogState();
+}
+
+class _ImportDialogState extends ConsumerState<_ImportDialog> {
+  final _controller = TextEditingController();
+  ImportMode _mode = ImportMode.merge;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final result = await ref
+          .read(dataImportServiceProvider)
+          .importJson(_controller.text, _mode);
+      if (!mounted) return;
+      Navigator.of(context).pop(result.describe());
+    } on ImportFormatException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Import failed — the data may be corrupted.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Import data'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _controller,
+              maxLines: 6,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              decoration: const InputDecoration(
+                hintText: 'Paste the exported JSON here…',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SegmentedButton<ImportMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ImportMode.merge,
+                  label: Text('Merge'),
+                  tooltip: 'Combine with existing data; newer entries win',
+                ),
+                ButtonSegment(
+                  value: ImportMode.replace,
+                  label: Text('Replace'),
+                  tooltip: 'Wipe current data first',
+                ),
+              ],
+              selected: {_mode},
+              onSelectionChanged: (s) => setState(() => _mode = s.first),
+            ),
+            if (_mode == ImportMode.replace) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Replace deletes everything currently in the app first.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
+          child: const Text(AppStrings.cancel),
+        ),
+        FilledButton(
+          onPressed: _busy ? null : _run,
+          child: _busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Import'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bottom sheet listing on-device backups with restore actions.
+class _BackupsSheet extends ConsumerWidget {
+  const _BackupsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final backupsAsync = ref.watch(_backupListProvider);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          0,
+          AppSpacing.screen,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Backups', style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Reset snapshots your data once a day and keeps the last '
+              '${BackupService.keep}. Backups live only on this device.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            backupsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => Text(
+                'Could not read backups.',
+                style: theme.textTheme.bodySmall,
+              ),
+              data: (backups) => backups.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.lg,
+                      ),
+                      child: Text(
+                        'No backups yet — one is created automatically each '
+                        'day, or make one now.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (final b in backups)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.description_outlined),
+                            title: Text(DateFormat.yMMMEd().format(b.date)),
+                            trailing: TextButton(
+                              onPressed: () => _restore(context, ref, b),
+                              child: const Text('Restore'),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  await ref.read(backupServiceProvider).backupNow();
+                  ref.invalidate(_backupListProvider);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Backup created')),
+                  );
+                },
+                icon: const Icon(Icons.save_rounded),
+                label: const Text('Back up now'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _restore(
+    BuildContext context,
+    WidgetRef ref,
+    BackupInfo backup,
+  ) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Restore this backup?',
+      message:
+          'Data from ${DateFormat.yMMMd().format(backup.date)} will be merged '
+          'into the app. Nothing is deleted; newer entries win conflicts.',
+      confirmLabel: 'Restore',
+      destructive: false,
+    );
+    if (!confirmed || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref
+          .read(backupServiceProvider)
+          .restore(backup, ImportMode.merge);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Restored ${result.describe()}')),
+      );
+    } on ImportFormatException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not restore: ${e.message}')),
+      );
+    }
+  }
+}
+
+final _backupListProvider = FutureProvider.autoDispose<List<BackupInfo>>(
+  (ref) => ref.watch(backupServiceProvider).listBackups(),
+);

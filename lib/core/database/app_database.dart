@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../../features/habits/domain/habit.dart';
+import '../../features/habits/domain/habit_entry.dart' as domain;
 import '../../features/reset/domain/reset_plan.dart';
 
 part 'app_database.g.dart';
@@ -96,4 +97,29 @@ class AppDatabase extends _$AppDatabase {
       await delete(habits).go();
     });
   }
+
+  /// Import helper: inserts an entry row verbatim, preserving its original
+  /// id and timestamps (unlike the repository, which mints new rows).
+  Future<void> importEntryRow(domain.HabitEntry e) => into(habitEntries).insert(
+    HabitEntriesCompanion.insert(
+      id: e.id,
+      habitId: e.habitId,
+      dateKey: e.dateKey,
+      value: e.value,
+      completed: e.completed,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+    ),
+  );
+
+  /// Import helper: overwrites the row [existingId] with the imported
+  /// entry's values (used when a newer backup row wins a merge conflict).
+  Future<void> updateEntryRow(String existingId, domain.HabitEntry e) =>
+      (update(habitEntries)..where((t) => t.id.equals(existingId))).write(
+        HabitEntriesCompanion(
+          value: Value(e.value),
+          completed: Value(e.completed),
+          updatedAt: Value(e.updatedAt),
+        ),
+      );
 }

@@ -23,14 +23,15 @@ platform integrations, and the backend + monetization land together in v2.0
 
 The trust release. Ship before growing the audience.
 
-- **Import / restore**: consume the JSON the app already exports; validation,
+- [x] **Import / restore**: consume the JSON the app already exports; validation,
   merge-or-replace choice, schema-versioned for forward compatibility
-- **Automatic local backups**: daily silent export to app documents, keep
+- [x] **Automatic local backups**: daily silent export to app documents, keep
   last 7; restore surfaced in onboarding when a backup is detected after
   reinstall
-- **Sentry crash reporting** (crashes only, no analytics): update privacy
+- [x] **Sentry crash reporting** (code shipped, dormant until a DSN is
+  configured via --dart-define): update privacy
   policy + both stores' data-safety forms to disclose crash data
-- Widget test coverage for the backup/restore flows
+- [x] Test coverage for the backup/restore flows (32 tests green)
 
 ## v1.2 — Make streaks feel alive (engagement)
 

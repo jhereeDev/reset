@@ -46,7 +46,9 @@ workflows:
       - name: Build signed IPA
         # BUILD_NUMBER is Codemagic's per-app build counter — guarantees every
         # upload has a unique, increasing build number for TestFlight.
-        script: flutter build ipa --release --build-number=$BUILD_NUMBER
+        # SENTRY_DSN comes from a Codemagic env group when crash reporting is
+        # enabled; an empty value keeps telemetry fully off.
+        script: flutter build ipa --release --build-number=$BUILD_NUMBER --dart-define=SENTRY_DSN=${SENTRY_DSN:-}
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
